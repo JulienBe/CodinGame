@@ -2,6 +2,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util._
 
 object Player extends App {
+  val random = Random
   val opponentcount = readInt
   val myPod = new Pod(0, 0, 0)
   val enemies = new Array[Pod](opponentcount)
@@ -26,7 +27,7 @@ object Player extends App {
   }
 }
 
-object Status{
+object Status {
   val free = '.'.toInt
   val mine = '0'.toInt
   val p1 = '1'.toInt
@@ -85,7 +86,7 @@ case class Map(val rep: Array[Array[Cell]] = Builder.makeGrid(Array.ofDim[Cell](
 case class Cell(var status: Int, val x: Int, val y: Int, var attraction: Float) {
 
   def computeValue = {
-    attraction = 1
+    attraction = Random.nextFloat
     if (status == Status.free)
       attraction += 1
   }
