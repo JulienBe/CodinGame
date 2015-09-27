@@ -1,4 +1,4 @@
-import math._
+import scala.collection.mutable.ListBuffer
 import scala.util._
 
 object Player extends App {
@@ -20,7 +20,9 @@ object Player extends App {
     for(i <- 0 until 20)
       map.update(readLine, i)
 
-    println("17 10") // action: "x y" to move or "BACK rounds" to go back in time
+    val destination = map.target(map.rep(myPod.x)(myPod.y))
+    Console.err.println("Goto : " + destination.x + "," + destination.y)
+    println(destination.x + " " + destination.y) // action: "x y" to move or "BACK rounds" to go back in time
   }
 }
 
@@ -34,9 +36,9 @@ object Status{
 
 object Builder {
   def makeGrid(cells: Array[Array[Cell]]) = {
-    for (y <- 0 until cells.length)
-      for (x <- 0 until cells(0).length)
-        cells(y)(x) = new Cell(Status.free, x, y)
+    for (x <- 0 until cells.length)
+      for (y <- 0 until cells(0).length)
+        cells(x)(y) = new Cell(Status.free, x, y, 0)
     cells
   }
 }
@@ -50,14 +52,41 @@ case class Pod(var x: Int = 0, var y: Int = 0, var backInTimeLeft: Int = 0) {
 }
 
 // One line of the map ('.' = free, '0' = you, otherwise the id of the opponent)
-case class Map(val rep: Array[Array[Cell]] = Builder.makeGrid(Array.ofDim[Cell](20, 35))) {
+case class Map(val rep: Array[Array[Cell]] = Builder.makeGrid(Array.ofDim[Cell](35, 20))) {
 
-  def update(readLine: String, lineIndex: Int) = {
-    val line = readLine
+  def getCanditates(c: Cell) = {
+    var candidates = ListBuffer[Cell]()
+    if (hasLeft(c))   candidates += rep(c.x-1)(c.y)
+    if (hasRight(c))  candidates += rep(c.x+1)(c.y)
+    if (hasTop(c))    candidates += rep(c.x)(c.y-1)
+    if (hasBottom(c)) candidates += rep(c.x)(c.y+1)
+    candidates
+  }
+
+  def hasLeft(c: Cell)    = c.x > 0
+  def hasRight(c: Cell)   = c.x < 35 - 1
+  def hasTop(c: Cell)     = c.y > 0
+  def hasBottom(c: Cell)  = c.y < 20 - 1
+
+  def target(current: Cell) = {
+    val candidates = getCanditates(current)
+    candidates.foreach(c => c.computeValue)
+    val sorted = candidates.sortBy(- _.attraction)
+    sorted(0)
+  }
+
+  def update(line: String, lineIndex: Int) = {
     for (i <- 0 until line.length)
-      rep(lineIndex)(i).status = line.charAt(i)
+      rep(i)(lineIndex).status = line.charAt(i)
   }
 
 }
 
-case class Cell(var status: Int, val x: Int, val y: Int)
+case class Cell(var status: Int, val x: Int, val y: Int, var attraction: Float) {
+
+  def computeValue = {
+    attraction = 1
+    if (status == Status.free)
+      attraction += 1
+  }
+}
