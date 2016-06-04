@@ -1,3 +1,5 @@
+package Scala
+
 object Player {
 
   def main(args: Array[String]) {

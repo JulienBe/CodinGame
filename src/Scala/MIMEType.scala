@@ -1,3 +1,5 @@
+package Scala
+
 import math._
 import scala.util._
 

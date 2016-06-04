@@ -1,4 +1,4 @@
-package Scala.src
+package Scala
 
 /**
   * The city of Montpellier has equipped its streets with defibrillators to help save victims of cardiac arrests.

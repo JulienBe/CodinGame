@@ -1,3 +1,5 @@
+package Scala.localSim
+
 abstract class Server(clients: List[Client]) {
 
   def start() = {

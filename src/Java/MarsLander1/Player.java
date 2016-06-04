@@ -1,4 +1,4 @@
-package MarsLander1;
+package Java.MarsLander1;
 
 import java.util.*;
 

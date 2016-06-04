@@ -1,4 +1,4 @@
-package Onboarding;
+package Java.Onboarding;
 
 import java.util.Scanner;
 

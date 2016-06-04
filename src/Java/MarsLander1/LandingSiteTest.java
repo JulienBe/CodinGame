@@ -1,4 +1,4 @@
-package MarsLander1;
+package Java.MarsLander1;
 
 import junit.framework.TestCase;
 import org.junit.Test;

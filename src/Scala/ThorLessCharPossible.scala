@@ -1,3 +1,5 @@
+package Scala
+
 object Player extends App{var Array(x,y,a,b)=for(i<-readLine split " ")yield i.toInt
 while(1>0){b+=t(y-b,'S','N')
 a+=t(x-a,'E','W')
