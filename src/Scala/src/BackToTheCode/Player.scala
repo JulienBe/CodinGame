@@ -230,13 +230,6 @@ object Map {
     val right = getHorizontalList(to,  1,  to.x + 1, rep.length - 1, isntFree)
     val up = getVerticalList(  to,  1,  to.y + 1, rep(0).length - 1, isntFree)
     val down = getVerticalList(  to, -1,  to.y - 1, 0, isntFree)
-    Console.err.println()
-    Console.err.println("========= " + to.x + "," + to.y + " ========")
-    Console.err.println("left : " + left)
-    Console.err.println("right : " + right)
-    Console.err.println("up : " + up)
-    Console.err.println("down : " + down)
-    Console.err.println("=========")
 
     val leftSum = left.map(getNumberOfBordersMine(_)).sum
     val rightSum = right.map(getNumberOfBordersMine(_)).sum
@@ -252,7 +245,6 @@ object Map {
     if (getRightBorder(cell) == Status.mine)  rep += 1
     if (getUpBorder(cell) == Status.mine)     rep += 1
     if (getDownBorder(cell) == Status.mine)   rep += 1
-    Console.err.println("Number of borders for " + cell.x + "," + cell.y + " : " + rep)
     rep
   }
   def getLeftBorder(cell: Cell) = getHorizontalBorderStatus(cell, -1, cell.x - 1, 0)
