@@ -1,10 +1,3 @@
 package Scala
-object Solution extends App{val n=readInt
-val t=readLine.split(" ")
-var c=5527*n
-if(c>0)t.foreach((s:String)=>c={val i=s.toInt
-if(a(i)<a(c)||i==a(c))i
-else
-c})
-println(c)
-def a(i:Int)=Math.abs(i)}
+
+object Solution extends App{if(readInt!=0)println(readLine.split(" ").map(_.toInt).sortWith(_>_).minBy(math.abs))else print(0)}
