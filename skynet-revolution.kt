@@ -18,10 +18,8 @@ fun main(args : Array<String>) {
         adjacencyList[N2].add(nodes[N1])
     }
 
-    for (i in 0 until E) {
-        val exit = input.nextInt()
-        nodes[exit].exit = true
-    }
+    for (i in 0 until E)
+        nodes[input.nextInt()].exit = true
     val exits: Set<Node> = nodes.filter { it.exit }.toHashSet()
 
 
@@ -30,7 +28,7 @@ fun main(args : Array<String>) {
         val exitPaths = findExitPaths(nodes[SI], adjacencyList, exits)
 
         exitPaths.forEach {
-            System.err.println("path size ${it.nodes.size} : $it")
+            System.err.println("${it.goal} : $it")
         }
         val selectedPath = exitPaths.first().nodes
         cut(selectedPath.elementAt(selectedPath.size - 1), selectedPath.elementAt(selectedPath.size - 2), adjacencyList)
@@ -40,17 +38,41 @@ fun main(args : Array<String>) {
 data class SinglePath(val origin: Node, val goal: Node, val nodes: Set<Node> = setOf())
 
 fun findExitPaths(origin: Node, adjacencyList: Array<MutableSet<Node>>, exits: Set<Node>): List<SinglePath> {
-    System.err.println("Search exits for ${origin.index}")
-    return exits.map { exit ->
+    val candidates = exits.map { exit ->
         travelPathToExit(origin, Array(adjacencyList.size) { false }, exit, adjacencyList)
+    }.filter { it.nodes.isNotEmpty() }               // no path to go there
+
+    val urgentBlockItNOOOOOOOOOW = candidates.filter { it.nodes.size == 2 }
+    if (urgentBlockItNOOOOOOOOOW.isNotEmpty()) {
+        System.err.println("URGENT")
+        return urgentBlockItNOOOOOOOOOW
     }
-            .filter { it.nodes.isNotEmpty() }               // no path to go there
-            .sortedWith(compareBy(
-                    { it.nodes.size != 2}, // if he is next to it, that's kinda urgent
-                    { -adjacencyList[it.nodes.elementAt(it.nodes.size - 2).index].count { it.exit } },
-                    // if they have the same size, give weight to the node. Yeah they could be merged. Meh, it works
-                    { it.nodes.size }
-            ))
+
+    val thoseDoubleExitsAreAnnoying = candidates
+            .filter { path ->
+                path.nodes.any { node ->
+                    adjacencyList[node.index].count { it.exit } >= 2 }
+            }
+    // That's used to get the closest with double exit. But apparently skynet would just target the closest exit ?
+            /*.sortedWith(compareBy(
+                { path ->
+                    path.nodes.indexOfFirst { node ->
+                        adjacencyList[node.index].count { it.exit } >= 2
+                    }
+                },
+                    {it.nodes.size}
+            ))*/
+
+    if (thoseDoubleExitsAreAnnoying.isNotEmpty()) {
+        System.err.println("ANNOYING")
+        return thoseDoubleExitsAreAnnoying.sortedBy { path ->
+            path.nodes.indexOfFirst { node ->
+                adjacencyList[node.index].any { it.exit }
+            }
+        }
+    }
+
+    return candidates.sortedBy { it.nodes.size }
 }
 
 fun travelPathToExit(origin: Node, visited: Array<Boolean>, goal: Node, adjacencyList: Array<MutableSet<Node>>): SinglePath {
