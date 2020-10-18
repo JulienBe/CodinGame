@@ -30,14 +30,14 @@ fun main(args : Array<String>) {
         val exitPaths = findExitPaths(nodes[SI], adjacencyList, exits)
 
         exitPaths.forEach {
-            System.err.println(it)
+            System.err.println("path size ${it.nodes.size} : $it")
         }
         val selectedPath = exitPaths.first().nodes
         cut(selectedPath.elementAt(selectedPath.size - 1), selectedPath.elementAt(selectedPath.size - 2), adjacencyList)
     }
 }
 
-data class SinglePath(val origin: Node, val goal: Node, val nodes: Set<Node> = setOf())}
+data class SinglePath(val origin: Node, val goal: Node, val nodes: Set<Node> = setOf())
 
 fun findExitPaths(origin: Node, adjacencyList: Array<MutableSet<Node>>, exits: Set<Node>): List<SinglePath> {
     System.err.println("Search exits for ${origin.index}")
@@ -45,11 +45,11 @@ fun findExitPaths(origin: Node, adjacencyList: Array<MutableSet<Node>>, exits: S
         travelPathToExit(origin, Array(adjacencyList.size) { false }, exit, adjacencyList)
     }
             .filter { it.nodes.isNotEmpty() }               // no path to go there
-            .onEach { System.err.println("${it.origin} ${it.goal}  ${adjacencyList[it.nodes.elementAt(it.nodes.size - 2).index].size}") }
             .sortedWith(compareBy(
-                    { it.nodes.size },
-                    { -adjacencyList[it.nodes.elementAt(it.nodes.size - 2).index].count { it.exit } }
+                    { it.nodes.size != 2}, // if he is next to it, that's kinda urgent
+                    { -adjacencyList[it.nodes.elementAt(it.nodes.size - 2).index].count { it.exit } },
                     // if they have the same size, give weight to the node. Yeah they could be merged. Meh, it works
+                    { it.nodes.size }
             ))
 }
 
