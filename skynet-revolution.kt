@@ -1,6 +1,6 @@
 import java.util.*
 
-fun main(args : Array<String>) {
+fun main(args: Array<String>) {
     val input = Scanner(System.`in`)
     val N = input.nextInt() // the total number of nodes in the level, including the gateways
     val L = input.nextInt() // the number of links
@@ -22,62 +22,51 @@ fun main(args : Array<String>) {
         nodes[input.nextInt()].exit = true
     val exits: Set<Node> = nodes.filter { it.exit }.toHashSet()
 
-
     while (true) {
         val SI = input.nextInt() // The index of the node on which the Skynet agent is positioned this turn
-        val exitPaths = findExitPaths(nodes[SI], adjacencyList, exits)
-
-        exitPaths.forEach {
-            System.err.println("${it.goal} : $it")
-        }
-        val selectedPath = exitPaths.first().nodes
-        cut(selectedPath.elementAt(selectedPath.size - 1), selectedPath.elementAt(selectedPath.size - 2), adjacencyList)
+        val selectedPath = findExitPaths(nodes[SI], adjacencyList, exits)
+        cut(selectedPath.nodes.elementAt(selectedPath.nodes.size - 1), selectedPath.nodes.elementAt(selectedPath.nodes.size - 2), adjacencyList)
     }
 }
 
 data class SinglePath(val origin: Node, val goal: Node, val nodes: Set<Node> = setOf())
 
-fun findExitPaths(origin: Node, adjacencyList: Array<MutableSet<Node>>, exits: Set<Node>): List<SinglePath> {
+fun findExitPaths(origin: Node, adjacencyList: Array<MutableSet<Node>>, exits: Set<Node>): SinglePath {
     val candidates = exits.map { exit ->
         travelPathToExit(origin, Array(adjacencyList.size) { false }, exit, adjacencyList)
     }.filter { it.nodes.isNotEmpty() }               // no path to go there
 
     val urgentBlockItNOOOOOOOOOW = candidates.filter { it.nodes.size == 2 }
     if (urgentBlockItNOOOOOOOOOW.isNotEmpty()) {
-        System.err.println("URGENT")
-        return urgentBlockItNOOOOOOOOOW
+        return urgentBlockItNOOOOOOOOOW.first()
     }
 
     val thoseDoubleExitsAreAnnoying = candidates
             .filter { path ->
                 path.nodes.any { node ->
-                    adjacencyList[node.index].count { it.exit } >= 2 }
+                    adjacencyList[node.index].count { it.exit } >= 2
+                }
             }
-    // That's used to get the closest with double exit. But apparently skynet would just target the closest exit ?
-            /*.sortedWith(compareBy(
-                { path ->
-                    path.nodes.indexOfFirst { node ->
-                        adjacencyList[node.index].count { it.exit } >= 2
-                    }
-                },
-                    {it.nodes.size}
-            ))*/
 
     if (thoseDoubleExitsAreAnnoying.isNotEmpty()) {
-        System.err.println("ANNOYING")
-        return thoseDoubleExitsAreAnnoying.sortedBy { path ->
-            path.nodes.indexOfFirst { node ->
-                adjacencyList[node.index].any { it.exit }
-            }
-        }
+        val doubleCandidate = thoseDoubleExitsAreAnnoying.sortedWith(compareBy(
+                { path -> // get the closest double exit
+                    path.nodes.indexOfFirst { node ->
+                        adjacencyList[node.index].any { it.exit }
+                    }
+                }, { path -> // get shortest path if they are equal
+                    path.nodes.size
+                }
+        )).first()
+        return doubleCandidate
     }
 
-    return candidates.sortedBy { it.nodes.size }
+    return candidates.minBy { it.nodes.size }!!
 }
 
 fun travelPathToExit(origin: Node, visited: Array<Boolean>, goal: Node, adjacencyList: Array<MutableSet<Node>>): SinglePath {
     var depth = 0
-    var pathToCandidates: List<Pair<Set<Node>, Set<Node>>> = listOf ( setOf(origin) to adjacencyList[origin.index] )
+    var pathToCandidates: List<Pair<Set<Node>, Set<Node>>> = listOf(setOf(origin) to adjacencyList[origin.index])
     while (depth <= 10 && pathToCandidates.isNotEmpty()) {
         // every current origin
         pathToCandidates.forEach { ptc ->
