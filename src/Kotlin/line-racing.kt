@@ -28,6 +28,7 @@ fun main(args : Array<String>) {
             val previous = playerHistory
                 .getOrElse(turn - 1) { arrayOf() }
                 .getOrElse(it) { Player(myId, current, Direction.NONE) }.pos
+            grid.update(current, it)
             Player(it, current, Direction.guess(current, previous))
         }
         playerHistory.add(players)
@@ -37,20 +38,34 @@ fun main(args : Array<String>) {
     }
 }
 
+
 fun computeNewDir(grid: Grid, players: Array<Player>, id: Int): Direction {
     // Just avoid the borders
     val me = players[id]
-    val dirsToTry = me.direction.andAdjacent()
+    val dirsToTry: Array<Direction> = me.direction.andAdjacent()
+    dirsToTry.sortBy { -grid.value(it, me.pos) }
     val newDir: Direction? = dirsToTry.firstOrNull {
-        val valid = grid.isValid(me.pos + it)
-        valid
+        grid.free(me.pos + it)
     }
     return newDir ?: me.direction
 }
 
 data class Grid(val width: Int, val height: Int) {
-    fun isValid(pos: Pos) = pos.x in 0 until width && pos.y in 0 until height
-    val grid = Array(width) { Array(height) { -1 } }
+    private val grid = Array(height) { Array(width) { -1 } }
+    private fun withinBound(pos: Pos) = pos.x in 0 until width && pos.y in 0 until height
+    fun free(pos: Pos) = withinBound(pos) && grid[pos.y][pos.x] == -1
+    fun update(current: Pos, id: Int) {
+        grid[current.y][current.x] = id
+    }
+    fun value(dir: Direction, pos: Pos): Float {
+        var freeCellsAhead = 0
+        var nextPos = pos + dir
+        while (free(nextPos)) {
+            nextPos += dir
+            freeCellsAhead++
+        }
+        return freeCellsAhead.toFloat()
+    }
 }
 
 data class Pos(val x: Int, val y: Int) {
