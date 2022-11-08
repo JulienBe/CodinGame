@@ -38,33 +38,83 @@ fun main(args : Array<String>) {
     }
 }
 
-
 fun computeNewDir(grid: Grid, players: Array<Player>, id: Int): Direction {
     // Just avoid the borders
     val me = players[id]
     val dirsToTry: Array<Direction> = me.direction.andAdjacent()
-    dirsToTry.sortBy { -grid.value(it, me.pos) }
+    val otherPlayer: Player = players.first { it.id != id }
+    val otherPlayerDistanceMap = grid.computeDistances(otherPlayer.pos)
+
+    dirsToTry.sortBy { -grid.closestCellsValue(it, me.pos, otherPlayerDistanceMap) }
     val newDir: Direction? = dirsToTry.firstOrNull {
         grid.free(me.pos + it)
     }
     return newDir ?: me.direction
 }
 
-data class Grid(val width: Int, val height: Int) {
-    private val grid = Array(height) { Array(width) { -1 } }
-    private fun withinBound(pos: Pos) = pos.x in 0 until width && pos.y in 0 until height
-    fun free(pos: Pos) = withinBound(pos) && grid[pos.y][pos.x] == -1
-    fun update(current: Pos, id: Int) {
-        grid[current.y][current.x] = id
+data class Player(val id: Int, val pos: Pos, var direction: Direction)
+data class Cell(var playerId: Int)
+
+data class DistanceMap(val width: Int, val height: Int, val distances: Array<Array<Int>> = Array(height) { Array(width) { Int.MAX_VALUE } }) {
+    fun get(pos: Pos) = distances[pos.y][pos.x]
+    fun set(pos: Pos, value: Int) {
+        distances[pos.y][pos.x] = value
     }
-    fun value(dir: Direction, pos: Pos): Float {
-        var freeCellsAhead = 0
-        var nextPos = pos + dir
-        while (free(nextPos)) {
-            nextPos += dir
-            freeCellsAhead++
+
+    fun distance(index: Int): Int {
+        val x = index % width
+        val y = index / width
+        return distances[y][x]
+    }
+}
+
+data class Grid(val width: Int, val height: Int) {
+    private val grid = Array(height) { Array(width) { Cell(-1) } }
+    private fun withinBound(pos: Pos) = pos.x in 0 until width && pos.y in 0 until height
+    fun free(pos: Pos) = withinBound(pos) && grid[pos.y][pos.x].playerId == -1
+    fun update(current: Pos, id: Int) {
+        grid[current.y][current.x].playerId = id
+    }
+    fun get(pos: Pos) = grid[pos.y][pos.x]
+
+    fun computeDistances(playerPos: Pos): DistanceMap {
+        val distances = DistanceMap(width, height)
+
+        val visitedCells = mutableSetOf<Cell>()
+        val posToMeasure = Direction.moves
+            .map { playerPos + it }
+            .filter { free(it) }
+            .associateWith { 1 }.toMutableMap()
+        while (posToMeasure.isNotEmpty()) {
+            val toEval = posToMeasure.entries.first()
+            val cell = get(toEval.key)
+            // Did I already found a better path to it ?
+            if (visitedCells.contains(cell) && distances.get(toEval.key) <= toEval.value) {
+                posToMeasure.remove(toEval.key)
+                continue
+            }
+            distances.set(toEval.key, toEval.value)
+            visitedCells.add(cell)
+            posToMeasure.remove(toEval.key)
+
+            Direction.moves
+                .map { toEval.key + it }
+                .filter { free(it) }
+                .forEach { posToMeasure[it] = toEval.value + 1 }
         }
-        return freeCellsAhead.toFloat()
+        return distances
+    }
+
+    /**
+     * Compute the number of cells that the player would be closest to then other players
+     */
+    fun closestCellsValue(dir: Direction, pos: Pos, otherPlayer: DistanceMap): Float {
+        val myDistanceMap = computeDistances(pos + dir)
+        return myDistanceMap.distances
+            .flatten()
+            .filterIndexed { index, dst ->
+                otherPlayer.distance(index) > dst
+            }.count().toFloat()
     }
 }
 
@@ -84,14 +134,11 @@ enum class Direction(val x: Int, val y: Int) {
     }
 
     companion object {
+        val moves = arrayOf(UP, DOWN, LEFT, RIGHT)
         fun guess(current: Pos, previous: Pos): Direction {
             val diffX = (current.x - previous.x).coerceIn(-1, 1)
             val diffY = (current.y - previous.y).coerceIn(-1, 1)
             return values().first { it.x == diffX && it.y == diffY }
         }
     }
-}
-
-data class Player(val id: Int, val pos: Pos, var direction: Direction) {
-    fun nextPos() = pos + direction
 }
