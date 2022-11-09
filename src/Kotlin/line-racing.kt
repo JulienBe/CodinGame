@@ -28,7 +28,10 @@ fun main(args : Array<String>) {
             val previous = playerHistory
                 .getOrElse(turn - 1) { arrayOf() }
                 .getOrElse(it) { Player(myId, current, Direction.NONE) }.pos
-            grid.update(current, it)
+            if (current != Pos.DEAD)
+                grid.update(current, it)
+            else if (previous != Pos.DEAD)
+                grid.playerDied(it)
             Player(it, current, Direction.guess(current, previous))
         }
         playerHistory.add(players)
@@ -42,10 +45,11 @@ fun computeNewDir(grid: Grid, players: Array<Player>, id: Int): Direction {
     // Just avoid the borders
     val me = players[id]
     val dirsToTry: Array<Direction> = me.direction.andAdjacent()
-    val otherPlayer: Player = players.first { it.id != id }
-    val otherPlayerDistanceMap = grid.computeDistances(otherPlayer.pos)
+    val otherPlayers = players
+        .filter { it.id != id }
+        .map { grid.computeDistances(it.pos) }
 
-    dirsToTry.sortBy { -grid.closestCellsValue(it, me.pos, otherPlayerDistanceMap) }
+    dirsToTry.sortBy { -grid.closestCellsValue(it, me.pos, otherPlayers) }
     val newDir: Direction? = dirsToTry.firstOrNull {
         grid.free(me.pos + it)
     }
@@ -69,9 +73,13 @@ data class DistanceMap(val width: Int, val height: Int, val distances: Array<Arr
 }
 
 data class Grid(val width: Int, val height: Int) {
-    private val grid = Array(height) { Array(width) { Cell(-1) } }
+
+    private val grid = Array(height) { Array(width) { Cell(NO_PLAYER) } }
+
     private fun withinBound(pos: Pos) = pos.x in 0 until width && pos.y in 0 until height
-    fun free(pos: Pos) = withinBound(pos) && grid[pos.y][pos.x].playerId == -1
+
+    fun free(pos: Pos) = withinBound(pos) && grid[pos.y][pos.x].playerId == NO_PLAYER
+
     fun update(current: Pos, id: Int) {
         grid[current.y][current.x].playerId = id
     }
@@ -108,18 +116,33 @@ data class Grid(val width: Int, val height: Int) {
     /**
      * Compute the number of cells that the player would be closest to then other players
      */
-    fun closestCellsValue(dir: Direction, pos: Pos, otherPlayer: DistanceMap): Float {
+    fun closestCellsValue(dir: Direction, pos: Pos, otherPlayers: List<DistanceMap>): Float {
         val myDistanceMap = computeDistances(pos + dir)
         return myDistanceMap.distances
             .flatten()
             .filterIndexed { index, dst ->
-                otherPlayer.distance(index) > dst
+                otherPlayers.all { it.distance(index) > dst }
             }.count().toFloat()
+    }
+
+    fun playerDied(id: Int) {
+        grid.forEach { row ->
+            row.forEach { cell ->
+                if (cell.playerId == id)
+                    cell.playerId = NO_PLAYER
+            }
+        }
+    }
+    companion object {
+        const val NO_PLAYER = -1
     }
 }
 
 data class Pos(val x: Int, val y: Int) {
     operator fun plus(direction: Direction): Pos = Pos(x + direction.x, y + direction.y)
+    companion object {
+        val DEAD = Pos(-1, -1)
+    }
 }
 
 enum class Direction(val x: Int, val y: Int) {
@@ -138,7 +161,7 @@ enum class Direction(val x: Int, val y: Int) {
         fun guess(current: Pos, previous: Pos): Direction {
             val diffX = (current.x - previous.x).coerceIn(-1, 1)
             val diffY = (current.y - previous.y).coerceIn(-1, 1)
-            return values().first { it.x == diffX && it.y == diffY }
+            return values().firstOrNull { it.x == diffX && it.y == diffY } ?: NONE
         }
     }
 }
